@@ -34,8 +34,9 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 .vinyl-center{width:36px;height:36px;border-radius:50%;background:radial-gradient(circle at 40% 35%,var(--gold-light),var(--gold),#8b6914);border:1.5px solid rgba(255,255,255,0.15);position:relative;z-index:1;box-shadow:0 0 12px rgba(201,168,76,0.4)}
 .lock-chip{position:absolute;top:12px;right:12px;z-index:2;background:rgba(0,0,0,0.6);border:1px solid rgba(255,255,255,0.08);border-radius:8px;padding:5px 10px;font-size:10px;color:rgba(240,236,227,0.35);display:flex;align-items:center;gap:5px;pointer-events:none;letter-spacing:0.06em}
 .song-meta{margin-bottom:1.2rem}
-.song-title-disp{font-family:'Cormorant Garamond',serif;font-size:1.75rem;font-weight:700;line-height:1.15;color:var(--text);margin-bottom:3px}
-.song-artist-disp{font-size:12px;color:var(--muted);font-weight:300;letter-spacing:0.06em;text-transform:uppercase}
+.song-title-disp{font-family:'Cormorant Garamond',serif;font-size:1.75rem;font-weight:700;line-height:1.15;color:var(--text);margin-bottom:8px}
+.song-desc{display:inline-block;font-size:11px;color:var(--gold);background:rgba(201,168,76,0.08);border:1px solid rgba(201,168,76,0.2);border-radius:100px;padding:3px 12px;font-weight:400;letter-spacing:0.06em}
+.song-desc.hidden{display:none}
 .playlist{display:flex;flex-direction:column;gap:4px;margin-bottom:1.4rem;max-height:180px;overflow-y:auto;scrollbar-width:thin;scrollbar-color:rgba(201,168,76,0.2) transparent}
 .playlist::-webkit-scrollbar{width:3px}
 .playlist::-webkit-scrollbar-thumb{background:rgba(201,168,76,0.2);border-radius:2px}
@@ -91,8 +92,8 @@ audio{display:none!important}
       <div class="lock-chip">🔒 Sin descarga</div>
     </div>
     <div class="song-meta">
-      <div class="song-title-disp" id="dispTitle">Cargando...</div>
-      <div class="song-artist-disp" id="dispArtist">Música Especial</div>
+      <div class="song-title-disp">Música Especial</div>
+      <span class="song-desc hidden" id="dispDesc"></span>
     </div>
     <div class="playlist" id="playlist"><div class="loading">Cargando canciones...</div></div>
     <div class="waveform" id="waveform"></div>
@@ -119,21 +120,20 @@ audio{display:none!important}
 <audio id="audioEl" preload="auto"></audio>
 <script>
 (function(){
-  const CANCIONES_URL = 'canciones.json';
-  let songs = [], currentIdx = -1, isDragging = false;
-  const BAR_COUNT = 58;
-  const audioEl    = document.getElementById('audioEl');
-  const vinyl      = document.getElementById('vinyl');
-  const btnPlay    = document.getElementById('btnPlay');
-  const btnPrev    = document.getElementById('btnPrev');
-  const btnNext    = document.getElementById('btnNext');
-  const volSlider  = document.getElementById('volSlider');
-  const waveformEl = document.getElementById('waveform');
-  const curTimeEl  = document.getElementById('curTime');
-  const totTimeEl  = document.getElementById('totTime');
-  const dispTitle  = document.getElementById('dispTitle');
-  const dispArtist = document.getElementById('dispArtist');
-  const playlistEl = document.getElementById('playlist');
+  const CANCIONES_URL='canciones.json';
+  let songs=[],currentIdx=-1,isDragging=false;
+  const BAR_COUNT=58;
+  const audioEl=document.getElementById('audioEl');
+  const vinyl=document.getElementById('vinyl');
+  const btnPlay=document.getElementById('btnPlay');
+  const btnPrev=document.getElementById('btnPrev');
+  const btnNext=document.getElementById('btnNext');
+  const volSlider=document.getElementById('volSlider');
+  const waveformEl=document.getElementById('waveform');
+  const curTimeEl=document.getElementById('curTime');
+  const totTimeEl=document.getElementById('totTime');
+  const dispDesc=document.getElementById('dispDesc');
+  const playlistEl=document.getElementById('playlist');
 
   function buildWaveform(){
     waveformEl.innerHTML='';
@@ -166,8 +166,8 @@ audio{display:none!important}
     audioEl.pause();
     audioEl.src=s.url;
     audioEl.volume=volSlider.value/100;
-    dispTitle.textContent=s.titulo;
-    dispArtist.textContent=s.artista||'Música Especial';
+    if(s.descripcion){dispDesc.textContent=s.descripcion;dispDesc.classList.remove('hidden');}
+    else{dispDesc.textContent='';dispDesc.classList.add('hidden');}
     buildWaveform();
     curTimeEl.textContent='0:00';
     totTimeEl.textContent='--:--';
@@ -179,31 +179,15 @@ audio{display:none!important}
   function togglePlay(){
     if(songs.length===0)return;
     if(currentIdx<0)loadSong(0);
-    if(audioEl.paused){
-      audioEl.play().catch(()=>{});
-      btnPlay.textContent='⏸';
-      vinyl.classList.add('spin');
-    }else{
-      audioEl.pause();
-      btnPlay.textContent='▶';
-      vinyl.classList.remove('spin');
-    }
+    if(audioEl.paused){audioEl.play().catch(()=>{});btnPlay.textContent='⏸';vinyl.classList.add('spin');}
+    else{audioEl.pause();btnPlay.textContent='▶';vinyl.classList.remove('spin');}
   }
 
-  audioEl.addEventListener('timeupdate',()=>{
-    if(!isDragging){curTimeEl.textContent=fmt(audioEl.currentTime);updateBars();}
-  });
-  audioEl.addEventListener('loadedmetadata',()=>{
-    totTimeEl.textContent=fmt(audioEl.duration);
-    if(currentIdx>=0){songs[currentIdx]._dur=fmt(audioEl.duration);renderPlaylist();}
-  });
+  audioEl.addEventListener('timeupdate',()=>{if(!isDragging){curTimeEl.textContent=fmt(audioEl.currentTime);updateBars();}});
+  audioEl.addEventListener('loadedmetadata',()=>{totTimeEl.textContent=fmt(audioEl.duration);if(currentIdx>=0){songs[currentIdx]._dur=fmt(audioEl.duration);renderPlaylist();}});
   audioEl.addEventListener('ended',()=>{
-    if(currentIdx<songs.length-1){
-      loadSong(currentIdx+1);
-      audioEl.play().catch(()=>{});
-      btnPlay.textContent='⏸';
-      vinyl.classList.add('spin');
-    }else{btnPlay.textContent='▶';vinyl.classList.remove('spin');}
+    if(currentIdx<songs.length-1){loadSong(currentIdx+1);audioEl.play().catch(()=>{});btnPlay.textContent='⏸';vinyl.classList.add('spin');}
+    else{btnPlay.textContent='▶';vinyl.classList.remove('spin');}
   });
 
   waveformEl.addEventListener('mousedown',e=>{isDragging=true;seek(e);});
@@ -213,8 +197,7 @@ audio{display:none!important}
     if(!audioEl.duration)return;
     const rect=waveformEl.getBoundingClientRect();
     const pct=Math.min(Math.max((e.clientX-rect.left)/rect.width,0),1);
-    audioEl.currentTime=pct*audioEl.duration;
-    updateBars();curTimeEl.textContent=fmt(audioEl.currentTime);
+    audioEl.currentTime=pct*audioEl.duration;updateBars();curTimeEl.textContent=fmt(audioEl.currentTime);
   }
   waveformEl.addEventListener('touchstart',e=>seekT(e),{passive:true});
   waveformEl.addEventListener('touchmove',e=>seekT(e),{passive:true});
@@ -226,12 +209,8 @@ audio{display:none!important}
   }
 
   btnPlay.addEventListener('click',togglePlay);
-  btnPrev.addEventListener('click',()=>{
-    if(currentIdx>0){const p=!audioEl.paused;loadSong(currentIdx-1);if(p){audioEl.play().catch(()=>{});btnPlay.textContent='⏸';vinyl.classList.add('spin');}}
-  });
-  btnNext.addEventListener('click',()=>{
-    if(currentIdx<songs.length-1){const p=!audioEl.paused;loadSong(currentIdx+1);if(p){audioEl.play().catch(()=>{});btnPlay.textContent='⏸';vinyl.classList.add('spin');}}
-  });
+  btnPrev.addEventListener('click',()=>{if(currentIdx>0){const p=!audioEl.paused;loadSong(currentIdx-1);if(p){audioEl.play().catch(()=>{});btnPlay.textContent='⏸';vinyl.classList.add('spin');}}});
+  btnNext.addEventListener('click',()=>{if(currentIdx<songs.length-1){const p=!audioEl.paused;loadSong(currentIdx+1);if(p){audioEl.play().catch(()=>{});btnPlay.textContent='⏸';vinyl.classList.add('spin');}}});
   volSlider.addEventListener('input',()=>{audioEl.volume=volSlider.value/100;});
 
   function renderPlaylist(){
@@ -239,18 +218,14 @@ audio{display:none!important}
     songs.forEach((s,i)=>{
       const item=document.createElement('div');
       item.className='pl-item'+(i===currentIdx?' active':'');
-      item.innerHTML=`<span class="pl-num">${i+1}</span><span class="pl-name">${s.titulo}</span><span class="pl-dur">${s._dur||'--:--'}</span>`;
-      item.addEventListener('click',()=>{
-        const p=!audioEl.paused;loadSong(i);
-        if(p){audioEl.play().catch(()=>{});btnPlay.textContent='⏸';vinyl.classList.add('spin');}
-      });
+      const label=s.descripcion||'Pista '+(i+1);
+      item.innerHTML=`<span class="pl-num">${i+1}</span><span class="pl-name">${label}</span><span class="pl-dur">${s._dur||'--:--'}</span>`;
+      item.addEventListener('click',()=>{const p=!audioEl.paused;loadSong(i);if(p){audioEl.play().catch(()=>{});btnPlay.textContent='⏸';vinyl.classList.add('spin');}});
       playlistEl.appendChild(item);
     });
   }
 
-  document.addEventListener('keydown',e=>{
-    if((e.ctrlKey||e.metaKey)&&['s','u','a','p'].includes(e.key.toLowerCase()))e.preventDefault();
-  });
+  document.addEventListener('keydown',e=>{if((e.ctrlKey||e.metaKey)&&['s','u','a','p'].includes(e.key.toLowerCase()))e.preventDefault();});
   document.addEventListener('dragstart',e=>e.preventDefault());
 
   fetch(CANCIONES_URL)
@@ -260,9 +235,7 @@ audio{display:none!important}
       if(songs.length>0){loadSong(0);}
       else{playlistEl.innerHTML='<div class="loading">No hay canciones disponibles.</div>';}
     })
-    .catch(()=>{
-      playlistEl.innerHTML='<div class="loading">Error cargando canciones.</div>';
-    });
+    .catch(()=>{playlistEl.innerHTML='<div class="loading">Error cargando canciones.</div>';});
 })();
 </script>
 </body>
