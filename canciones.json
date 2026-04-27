@@ -1,8 +1,16 @@
 {
   "canciones": [
     {
-      "descripcion": "GIZIO PRUEBA",
-      "url": "https://res.cloudinary.com/ddpveu2yf/video/upload/gizio_donde_brillas_tu._fbfil1.mp3"
+      "descripcion": "El Mulato Embajador del Swing",
+      "url": "https://res.cloudinary.com/ddpveu2yf/video/upload/1_El_Mulato_embajador_del_Swing.mp3_a991y4.mp3"
+    },
+    {
+      "descripcion": "Swing Latino",
+      "url": "https://res.cloudinary.com/ddpveu2yf/video/upload/2_Swing_Latino.mp3_jr2z8r.mp3"
+    },
+    {
+      "descripcion": "El Mulato Cabaret",
+      "url": "https://res.cloudinary.com/ddpveu2yf/video/upload/3_El_Mulato_Cabaret.mp3_zwnrng.mp3"
     }
   ]
 }
